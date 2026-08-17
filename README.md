@@ -1,4 +1,4 @@
-# Thinking Budgets for Local Qwen3 27B
+# Thinking Budgets for Local models compatible with llama.cpp
 
 Per-level thinking budgets for local models compatible with llama.cpp, plus a custom chat template for Qwen 3.8 27B that enables all budget sizes. Wired into [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) via a small extension.
 
