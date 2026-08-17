@@ -1,4 +1,4 @@
-# Nova pasta (6)
+# Thinking Budgets for Local Qwen3 27B
 
 Per-level thinking budgets for a local Qwen3 27B running on llama.cpp's `llama-server`, wired into [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) via a small extension.
 
