@@ -1,0 +1,66 @@
+{
+  "providers": {
+
+    "LocalVision-8080": {
+      "baseUrl": "http://localhost:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "local",
+      "models": [
+        {
+          "id": "qwen3-27b",
+          "input": ["text", "image"],
+          "maxTokens": 128000,
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "thinkingFormat": "qwen-chat-template",
+            "chatTemplateKwargs": {
+              "enable_thinking": {
+                "$var": "thinking.enabled"
+              },
+              "preserve_thinking": true
+            }
+          }
+        }
+      ]
+    },
+    "LocalNoVision-8080": {
+      "baseUrl": "http://localhost:8080/v1",
+      "api": "openai-completions",
+      "apiKey": "local",
+      "models": [
+        {
+          "id": "qwen3-27b",
+          "input": ["text"],
+          "maxTokens": 128000,
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "compat": {
+            "supportsDeveloperRole": false,
+            "thinkingFormat": "qwen-chat-template",
+            "chatTemplateKwargs": {
+              "enable_thinking": {
+                "$var": "thinking.enabled"
+              },
+              "preserve_thinking": true
+            }
+          }
+        }
+      ]
+    }
+    
+  }
+}
