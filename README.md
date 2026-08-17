@@ -106,7 +106,7 @@ Use a current llama.cpp build. Start the server on port 8080:
 llama-server \
   -m Qwen3-27B-Q4_K_M.gguf \
   --jinja \
-  --chat-template-file "Qwen 3.8 27B/chat_template_budget.jinja" \
+  --chat-template-file Qwen3.8-27B/chat_template_budget.jinja \
   --host 127.0.0.1 \
   --port 8080 \
   -ngl 999 \
@@ -162,7 +162,7 @@ Pass the file to `llama-server`:
 llama-server \
   -m Qwen3-27B-Q4_K_M.gguf \
   --jinja \
-  --chat-template-file "Qwen 3.8 27B/chat_template_budget.jinja" \
+  --chat-template-file Qwen3.8-27B/chat_template_budget.jinja \
   --host 127.0.0.1 \
   --port 8080
 ```
