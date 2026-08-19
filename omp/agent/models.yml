@@ -1,0 +1,35 @@
+providers:
+  llama.cpp:
+    baseUrl: http://127.0.0.1:8080   # local llama-server
+    api: openai-responses            # llama.cpp discovery forces this API shape
+    auth: none
+    discovery:
+      type: llama.cpp
+  qwen3.8-27b:
+    baseUrl: http://127.0.0.1:8080/v1  # local llama-server
+    auth: none
+    api: openai-completions
+    models:
+      - id: 'Qwen3.8-27B'
+        name: Qwen3.8-27B
+        reasoning: true
+        input: [text, image]
+        contextWindow: 262144
+        maxTokens: 32768
+        cost:
+          input: 0
+          output: 0
+          cacheRead: 0
+          cacheWrite: 0
+        compat:
+          supportsDeveloperRole: false
+          thinkingFormat: qwen-chat-template
+          chatTemplateKwargs:
+            enable_thinking:
+              $var: thinking.enabled
+            preserve_thinking: true
+    modelOverrides:
+      'Qwen3.8-27B':
+        thinking:
+          mode: effort
+          efforts: [minimal, low, medium, high, xhigh, max]
