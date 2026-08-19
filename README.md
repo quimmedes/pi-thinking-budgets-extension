@@ -1,6 +1,6 @@
-# Thinking Budgets for Pi compatible only with llama.cpp
+# Thinking Budgets for pi and omp, compatible only with llama.cpp
 
-Per-level thinking budgets for local models compatible with llama.cpp, plus a custom chat template for Qwen 3.8 27B that enables all budget sizes. Wired into [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) via a small extension.
+Per-level thinking budgets for local models compatible with llama.cpp, plus a custom chat template for Qwen 3.8 27B that enables all budget sizes. Wired into [pi](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) and [omp](https://www.npmjs.com/package/@oh-my-pi/pi-coding-agent) via small extensions.
 
 ```
 .
@@ -8,6 +8,10 @@ Per-level thinking budgets for local models compatible with llama.cpp, plus a cu
 │   └── agent/
 │       ├── extensions/thinking-budgets.ts   # pi extension: per-level thinking budgets
 │       └── models.json                      # pi provider config for the local server
+├── omp/
+│   └── agent/
+│       ├── extensions/thinking-budgets.ts   # omp extension: per-level thinking budgets
+│       └── models.yml                       # omp provider config for the local server
 └── Qwen 3.8 27B/
     └── chat_template_budget.jinja           # custom chat template for llama.cpp
 ```
@@ -16,11 +20,11 @@ Per-level thinking budgets for local models compatible with llama.cpp, plus a cu
 
 ## 1. What the extension is
 
-`pi/agent/extensions/thinking-budgets.ts` is a pi extension that gives a local `llama-server` (OpenAI-compatible API) **hard thinking-token budgets per thinking level**.
+One extension per harness — `pi/agent/extensions/thinking-budgets.ts` and `omp/agent/extensions/thinking-budgets.ts` — gives a local `llama-server` (OpenAI-compatible API) **hard thinking-token budgets per thinking level**. Both implement the same technique; the differences are listed at the end of this section.
 
 ### The problem
 
-pi natively sends thinking limits as `thinking_token_budget` — a vLLM parameter. `llama-server` **ignores** that parameter, so on llama.cpp the thinking level had no real enforcement: the model could think as long as it wanted.
+Both harnesses natively send thinking limits as `thinking_token_budget` — a vLLM parameter. `llama-server` **ignores** that parameter, so on llama.cpp the thinking level had no real enforcement: the model could think as long as it wanted.
 
 ### The solution
 
@@ -29,11 +33,11 @@ llama.cpp has its own mechanism (the same one the llama.cpp web chat uses):
 - `thinking_budget_tokens` (top-level) — hard limit for thinking tokens. The server's *reasoning-budget* sampler counts tokens emitted after the `think` tag and, when the budget is exhausted, **forces the end-of-thinking token** (logits of all other tokens → −inf).
 - `reasoning_control: true` — arms the budget sampler.
 
-The extension hooks pi's `before_provider_request` event and, for llama.cpp-style requests only:
+The extension hooks the harness's `before_provider_request` event and, for llama.cpp-style requests only:
 
 1. Removes `thinking_token_budget` (the vLLM parameter llama-server ignores).
 2. Replaces it with `thinking_budget_tokens` + `reasoning_control: true`.
-3. Maps pi's thinking level to a budget from the `BUDGETS` map:
+3. Maps the harness's thinking level to a budget from the `BUDGETS` map:
 
    | Level     | Budget (tokens) |
    | --------- | --------------- |
@@ -47,9 +51,17 @@ The extension hooks pi's `before_provider_request` event and, for llama.cpp-styl
 
    To change the values, edit the `BUDGETS` map in the extension.
 
+### pi vs omp
+
+| | pi | omp |
+| --- | --- | --- |
+| Import | `@earendil-works/pi-coding-agent` | `@oh-my-pi/pi-coding-agent` |
+| Thinking level | `ctx.thinkingLevel` on the event | `pi.getThinkingLevel()` |
+| Model config | `models.json` (`thinkingLevelMap`) | `models.yml` (`modelOverrides` + `thinking.efforts`) |
+
 ### Safety
 
-The extension only intervenes when the payload contains `chat_template_kwargs` — pi only sends that for models with a `thinkingFormat` of `qwen-chat-template`/`chat-template`, i.e. the llama-server providers. OpenAI, Anthropic, and other providers pass through untouched.
+The extension only intervenes when the payload contains `chat_template_kwargs` — the harness only sends that for models with a `thinkingFormat` of `qwen-chat-template`/`chat-template`, i.e. the llama-server providers. OpenAI, Anthropic, and other providers pass through untouched.
 
 ---
 
@@ -96,7 +108,63 @@ After setup, start pi and run `/reload` (extensions in auto-discovered locations
 
 ---
 
-## 3. Setting up the local model
+## 3. Setting up in `.omp`
+
+omp discovers extensions in the agent directory and model config in `models.yml`. The model config is user-level only:
+
+| Location                          | Scope                       |
+| --------------------------------- | --------------------------- |
+| `~/.omp/agent/extensions/`        | Global (all projects)       |
+| `.omp/extensions/` (project root) | Project-local extension     |
+| `~/.omp/agent/models.yml`         | Global model config         |
+
+### Global setup
+
+Copy the files from this repo into `~/.omp/agent/`:
+
+```bash
+# Linux / macOS
+mkdir -p ~/.omp/agent/extensions
+cp "omp/agent/extensions/thinking-budgets.ts" ~/.omp/agent/extensions/
+cp "omp/agent/models.yml" ~/.omp/agent/
+
+# Windows (PowerShell)
+New-Item -ItemType Directory -Force ~/.omp/agent/extensions | Out-Null
+Copy-Item "omp/agent/extensions/thinking-budgets.ts" ~/.omp/agent/extensions/
+Copy-Item "omp/agent/models.yml" ~/.omp/agent/
+```
+
+### Project-local extension
+
+Alternatively, keep the extension scoped to this project. Move/copy it into `.omp/extensions/` at the project root; the model config stays in `~/.omp/agent/models.yml`.
+
+```bash
+mkdir -p .omp/extensions
+mv "omp/agent/extensions/thinking-budgets.ts" .omp/extensions/
+```
+
+After setup, **restart omp** — extension modules load at session start (`/reload-plugins` refreshes skills, slash commands, and MCP servers, but not extension modules). The `llama.cpp` and `qwen3.8-27b` providers appear in `/model`.
+
+> **Note:** unlike pi, omp bundles its own host package, so the `@oh-my-pi/pi-coding-agent` import resolves without an extra install.
+
+### Provider config
+
+`omp/agent/models.yml` (copied to `~/.omp/agent/models.yml`) defines two providers pointing at the same server:
+
+- **`llama.cpp`** — discovery-based: `discovery.type: llama.cpp` probes the server and synthesizes model entries. `api: openai-responses` is forced by the llama.cpp discovery path.
+- **`qwen3.8-27b`** — explicit model `Qwen3.8-27B` (text + image, 262144 context window, 32768 max output tokens) against `http://127.0.0.1:8080/v1` with `api: openai-completions`:
+  - `reasoning: true` + `modelOverrides` with `thinking.mode: effort` and `efforts: [minimal, low, medium, high, xhigh, max]` — the full effort ladder is enabled.
+  - `compat.supportsDeveloperRole: false` — llama.cpp doesn't know the `developer` role, so omp sends the system prompt as a `system` message.
+  - `compat.thinkingFormat: qwen-chat-template` — tells omp to send `chat_template_kwargs` (this is what triggers the extension).
+  - `chatTemplateKwargs`:
+    - `enable_thinking: { "$var": "thinking.enabled" }` — thinking on/off follows omp's setting.
+    - `preserve_thinking: true` — previous `think` blocks are kept in context.
+
+Select the model in omp with `/model` → `qwen3.8-27b/Qwen3.8-27B` (or a discovered `llama.cpp/...` model).
+
+---
+
+## 4. Setting up the local model
 
 ### a. Serve the model with `llama-server`
 
@@ -116,7 +184,7 @@ llama-server \
 Key options:
 
 - `--jinja` — enables the (custom) chat template and tool calling.
-- `--chat-template-file` — replaces the template embedded in the GGUF with `chat_template_budget.jinja` (see section 4).
+- `--chat-template-file` — replaces the template embedded in the GGUF with `chat_template_budget.jinja` (see section 5).
 - `-ngl 999` — offload all layers to GPU.
 - `-c 32768` — context window per loaded model.
 
@@ -143,7 +211,7 @@ Select the model in pi with `/model` → `LocalVision-8080/qwen3-27b` (or the no
 
 ---
 
-## 4. Replacing the chat template in llama.cpp
+## 5. Replacing the chat template in llama.cpp
 
 ### Why
 
@@ -171,7 +239,7 @@ llama-server \
 - `--chat-template '<jinja string>'` — inline alternative; impractical for templates this size.
 - Omit both and llama.cpp uses the template embedded in the GGUF (the stock Qwen3 template).
 
-The template variables (`enable_thinking`, `reasoning_effort`, `preserve_thinking`) are supplied by pi through `chat_template_kwargs` in `models.json` — that's the link between pi's thinking levels and the template's behavior. The extension then adds the hard `thinking_budget_tokens` on top.
+The template variables (`enable_thinking`, `reasoning_effort`, `preserve_thinking`) are supplied by the harness through `chat_template_kwargs` in its model config (`models.json` for pi, `models.yml` for omp) — that's the link between the harness's thinking levels and the template's behavior. The extension then adds the hard `thinking_budget_tokens` on top.
 
 ### Verify
 
