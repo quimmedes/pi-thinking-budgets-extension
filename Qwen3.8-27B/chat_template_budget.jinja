@@ -1,3 +1,4 @@
+{#- quimmedes -#}
 {%- set image_count = namespace(value=0) %}
 {%- set video_count = namespace(value=0) %}
 {%- macro render_content(content, do_vision_count=false, is_system_content=false) %}
@@ -52,19 +53,20 @@
 {%- set reasoning_instructions = '' %}
 {%- if enable_thinking is undefined or enable_thinking is true %}
     {%- set resolved_reasoning_effort = reasoning_effort|default('low') %}
-    {%- if resolved_reasoning_effort not in ('low', 'medium', 'high', 'xhigh', 'max') %}
-        {{- raise_exception('Unexpected reasoning effort ' ~ resolved_reasoning_effort ~ '. Supported types are low (default), medium, high, xhigh, and max.') }}
+    {%- if resolved_reasoning_effort not in ('minimal', 'low', 'medium', 'high', 'xhigh', 'ultra', 'max') %}
+        {{- raise_exception('Unexpected reasoning effort ' ~ resolved_reasoning_effort ~ '. Supported types are minimal, low (default), medium, high, xhigh, ultra, and max.') }}
     {%- endif %}
-    {%- if resolved_reasoning_effort == 'low' %}
-        {%- set reasoning_instructions = 'Reasoning effort is set to low. Be concise and direct. Conclude your thinking as soon as the answer is reached without unnecessary elaboration.' %}
+    {%- if resolved_reasoning_effort in ('low', 'minimal') %}
+        {%- set reasoning_instructions = 'Reasoning effort is set to ' ~ resolved_reasoning_effort ~ '. Be concise and direct. Conclude your thinking as soon as the answer is reached without unnecessary elaboration.' %}
     {%- elif resolved_reasoning_effort == 'medium' %}
         {%- set reasoning_instructions = 'Reasoning effort is set to medium. Think through the problem step-by-step in a clear and linear fashion. Check key assumptions and provide a solid answer without circular deliberation.' %}
     {%- elif resolved_reasoning_effort == 'high' %}
         {%- set reasoning_instructions = 'Reasoning effort is set to high. Think thoroughly and systematically through the task. Validate essential assumptions, consider plausible alternative approaches, and verify correctness before concluding.' %}
     {%- elif resolved_reasoning_effort == 'xhigh' %}
         {%- set reasoning_instructions = 'Reasoning effort is set to xhigh. Use extensive reasoning. Break down complex aspects of the task, evaluate edge cases, compare viable methods, and ensure high rigor in the final conclusion.' %}
-    {%- elif resolved_reasoning_effort == 'max' %}
-        {%- set reasoning_instructions = 'Reasoning effort is set to max. Use the most rigorous reasoning possible. Exhaustively verify assumptions, explore all critical edge cases, and ensure complete logical consistency and correctness.' %}
+{#- quimmedes notes: that is going take a while, good luck with that -#}    
+{%- elif resolved_reasoning_effort in ('max', 'ultra') %}
+        {%- set reasoning_instructions = 'Reasoning effort is set to ' ~ resolved_reasoning_effort ~ '. Use the most rigorous reasoning possible. Exhaustively verify assumptions, explore all critical edge cases, and ensure complete logical consistency and correctness.' %}
     {%- endif %}
 {%- endif %}
 {%- if tools and tools is iterable and tools is not mapping %}
@@ -183,3 +185,4 @@
         {{- '<think>\n' }}
     {%- endif %}
 {%- endif %}
+{#- quimmedes -#}
