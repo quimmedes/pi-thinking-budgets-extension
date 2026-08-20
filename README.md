@@ -243,6 +243,17 @@ The template variables (`enable_thinking`, `reasoning_effort`, `preserve_thinkin
 
 ### Verify
 
+More flags to force the total limit of tokens spent, you can use it as a safeguard in case any other limitation fails, it's helpful with Hermes
+```bash
+ --reasoning-budget 2048 
+ --chat-template-kwargs "{\"preserve_thinking\": true, \"reasoning_effort\": \"low\"}" 
+  --reasoning-budget-message "... I am thinking for too long -- let me gather more info about the task."
+  --chat-template-file chat_template_budget.jinja
+```
+- `--reasoning-budget` The max size of tokens spent in thinking
+- `--reasoning-budget-message` Message sent after the thinking budget cut
+- `--chat-template-kwargs` Can also set to low, medium or xhigh by default in case the harness can't do that 
+
 After starting the server, send a quick request:
 
 ```bash
